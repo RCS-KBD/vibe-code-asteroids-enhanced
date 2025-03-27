@@ -114,55 +114,64 @@ class Game:
         self.player = Player()
         self.asteroids = [Asteroid() for _ in range(4)]
         self.running = True
+        self.game_over = False
         self.bullets = []
         self.score = 0
 
-    def handle_events(self):
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.running = False
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    self.running = False
-                elif event.key == pygame.K_SPACE:
-                    # Create new bullet at ship's nose position with ship's angle
-                    nose_pos = self.player.get_nose_position()
-                    self.bullets.append(Bullet(nose_pos.x, nose_pos.y, self.player.rotation))
+    def check_player_asteroid_collision(self):
+        # Check collision between player and asteroids
+        for asteroid in self.asteroids:
+            # Calculate distance between player center and asteroid center
+            dx = self.player.position.x - asteroid.x
+            dy = self.player.position.y - asteroid.y
+            distance = math.sqrt(dx**2 + dy**2)
+            
+            # If distance is less than combined radii (player size/2 + asteroid size)
+            if distance < (self.player.size/2 + asteroid.size):
+                self.game_over = True
+                break
 
     def update(self):
-        self.player.update()
-        for asteroid in self.asteroids:
-            asteroid.update()
-        
-        # Update bullets and remove dead ones
-        self.bullets = [bullet for bullet in self.bullets if bullet.lifetime > 0]
-        for bullet in self.bullets:
-            bullet.update()
+        if not self.game_over:
+            self.player.update()
+            for asteroid in self.asteroids:
+                asteroid.update()
+            
+            # Update bullets and remove dead ones
+            self.bullets = [bullet for bullet in self.bullets if bullet.lifetime > 0]
+            for bullet in self.bullets:
+                bullet.update()
 
-        # Collision detection
-        for bullet in self.bullets[:]:
-            for asteroid in self.asteroids[:]:
-                dx = bullet.position.x - asteroid.x
-                dy = bullet.position.y - asteroid.y
-                distance = math.sqrt(dx**2 + dy**2)
-                
-                if distance < asteroid.size:
-                    self.bullets.remove(bullet)
-                    self.asteroids.remove(asteroid)
-                    self.score += (3 - asteroid.size_index) * 100
+            # Check for player collision with asteroids
+            self.check_player_asteroid_collision()
+
+            # Bullet-asteroid collision detection
+            for bullet in self.bullets[:]:
+                for asteroid in self.asteroids[:]:
+                    dx = bullet.position.x - asteroid.x
+                    dy = bullet.position.y - asteroid.y
+                    distance = math.sqrt(dx**2 + dy**2)
                     
-                    # Split asteroid if it's not the smallest size
-                    if asteroid.size_index < len(ASTEROID_SIZES) - 1:
-                        for _ in range(2):
-                            self.asteroids.append(Asteroid(
-                                asteroid.x, asteroid.y, 
-                                asteroid.size_index + 1
-                            ))
-                    break
+                    if distance < asteroid.size:
+                        self.bullets.remove(bullet)
+                        self.asteroids.remove(asteroid)
+                        self.score += (3 - asteroid.size_index) * 100
+                        
+                        # Split asteroid if it's not the smallest size
+                        if asteroid.size_index < len(ASTEROID_SIZES) - 1:
+                            for _ in range(2):
+                                self.asteroids.append(Asteroid(
+                                    asteroid.x, asteroid.y, 
+                                    asteroid.size_index + 1
+                                ))
+                        break
 
     def draw(self):
         self.screen.fill(BLACK)
-        self.player.draw(self.screen)
+        
+        # Draw game objects
+        if not self.game_over:
+            self.player.draw(self.screen)
         for bullet in self.bullets:
             bullet.draw(self.screen)
         for asteroid in self.asteroids:
@@ -173,7 +182,38 @@ class Game:
         score_text = font.render(f"Score: {self.score}", True, WHITE)
         self.screen.blit(score_text, (10, 10))
 
+        # Draw game over message
+        if self.game_over:
+            font = pygame.font.Font(None, 74)
+            game_over_text = font.render("GAME OVER", True, WHITE)
+            text_rect = game_over_text.get_rect(center=(WIDTH/2, HEIGHT/2))
+            self.screen.blit(game_over_text, text_rect)
+            
+            font = pygame.font.Font(None, 36)
+            final_score_text = font.render(f"Final Score: {self.score}", True, WHITE)
+            score_rect = final_score_text.get_rect(center=(WIDTH/2, HEIGHT/2 + 50))
+            self.screen.blit(final_score_text, score_rect)
+            
+            restart_text = font.render("Press R to Restart or ESC to Quit", True, WHITE)
+            restart_rect = restart_text.get_rect(center=(WIDTH/2, HEIGHT/2 + 100))
+            self.screen.blit(restart_text, restart_rect)
+
         pygame.display.flip()
+
+    def handle_events(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.running = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    self.running = False
+                elif event.key == pygame.K_SPACE and not self.game_over:
+                    # Create new bullet at ship's nose position with ship's angle
+                    nose_pos = self.player.get_nose_position()
+                    self.bullets.append(Bullet(nose_pos.x, nose_pos.y, self.player.rotation))
+                elif event.key == pygame.K_r and self.game_over:
+                    # Reset game
+                    self.__init__()
 
     def run(self):
         while self.running:
