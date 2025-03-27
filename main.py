@@ -3,6 +3,7 @@ import sys
 import random
 import math
 from pygame import Vector2
+from enum import Enum
 
 # Initialize Pygame
 pygame.init()
@@ -13,10 +14,99 @@ HEIGHT = 600
 FPS = 60
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
+RED = (255, 50, 50)
+BLUE = (50, 50, 255)
+YELLOW = (255, 255, 0)
 SHIP_SIZE = 20
 BULLET_SIZE = 3
 BULLET_SPEED = 10
+ENEMY_BULLET_SPEED = 5
 ASTEROID_SIZES = [50, 30, 20]
+POWERUP_SIZE = 15
+POWERUP_DURATION = 900  # 15 seconds at 60 FPS
+POWERUP_SPAWN_COOLDOWN = 1800  # 30 seconds at 60 FPS
+ENEMY_SPAWN_DELAY = 300  # 5 seconds at 60 FPS
+
+class PowerupType(Enum):
+    SHIELD = 1
+    SPREAD_SHOT = 2
+
+class Powerup:
+    def __init__(self, x, y, powerup_type, is_floating=False):
+        self.position = Vector2(x, y)
+        self.type = powerup_type
+        self.size = POWERUP_SIZE
+        self.angle = 0
+        self.rotation_speed = 2
+        self.collected = False
+        self.is_floating = is_floating
+        
+        # Floating animation
+        self.float_offset = 0
+        self.float_speed = 0.1
+        self.float_amplitude = 5
+        
+        # Movement for floating powerups
+        if is_floating:
+            # Start from either left or right side
+            self.position.x = -POWERUP_SIZE if random.random() < 0.5 else WIDTH + POWERUP_SIZE
+            self.position.y = random.randint(100, HEIGHT - 100)
+            # Move in the opposite direction of where we spawned
+            self.velocity = Vector2(1 if self.position.x < 0 else -1, 0)
+            self.speed = 1.5  # Slow movement across screen
+
+    def bounce_off_asteroid(self, asteroid_x, asteroid_y):
+        # Calculate direction from asteroid to powerup
+        direction = Vector2(self.position.x - asteroid_x, self.position.y - asteroid_y).normalize()
+        # Reflect velocity based on collision normal
+        self.velocity = direction * self.speed
+
+    def update(self, asteroids):
+        # Rotate the powerup
+        self.angle = (self.angle + self.rotation_speed) % 360
+        # Update floating animation
+        self.float_offset = math.sin(pygame.time.get_ticks() * self.float_speed) * self.float_amplitude
+        
+        # Update position for floating powerups
+        if self.is_floating:
+            old_pos = Vector2(self.position)
+            self.position += self.velocity * self.speed
+            
+            # Check for collision with asteroids
+            for asteroid in asteroids:
+                dx = self.position.x - asteroid.x
+                dy = self.position.y - asteroid.y
+                distance = math.sqrt(dx*dx + dy*dy)
+                if distance < (self.size + asteroid.size):
+                    # Restore position and bounce
+                    self.position = old_pos
+                    self.bounce_off_asteroid(asteroid.x, asteroid.y)
+                    break
+            
+            # Screen wrapping
+            self.position.x %= WIDTH
+            self.position.y %= HEIGHT
+
+    def draw(self, screen):
+        # Draw different shapes based on powerup type
+        if self.type == PowerupType.SHIELD:
+            # Draw shield powerup (hexagon)
+            points = []
+            for i in range(6):
+                angle = math.radians(self.angle + i * 60)
+                point_x = self.position.x + math.cos(angle) * self.size
+                point_y = self.position.y + self.float_offset + math.sin(angle) * self.size
+                points.append((point_x, point_y))
+            pygame.draw.polygon(screen, BLUE, points, 2)
+        else:  # SPREAD_SHOT
+            # Draw spread shot powerup (triangle)
+            points = []
+            for i in range(3):
+                angle = math.radians(self.angle + i * 120)
+                point_x = self.position.x + math.cos(angle) * self.size
+                point_y = self.position.y + self.float_offset + math.sin(angle) * self.size
+                points.append((point_x, point_y))
+            pygame.draw.polygon(screen, YELLOW, points, 2)
 
 class Player:
     def __init__(self):
@@ -26,6 +116,10 @@ class Player:
         self.friction = 0.98
         self.rotation = 0
         self.size = 20
+        self.shields = 0
+        self.shield_angle = 0  # For rotating shield effect
+        self.spread_shot = False
+        self.spread_shot_timer = 0
 
     def get_nose_position(self):
         # Calculate the position of the ship's nose using Vector2
@@ -40,6 +134,30 @@ class Player:
             self.position + Vector2(self.size/2, self.size/2).rotate(self.rotation)
         ]
         pygame.draw.polygon(screen, WHITE, points, 2)
+        
+        # Draw shield bubble if shields are active
+        if self.shields > 0:
+            # Draw rotating shield bubble
+            shield_radius = self.size + 10
+            shield_points = []
+            num_points = 20
+            for i in range(num_points):
+                angle = self.shield_angle + (i * 360 / num_points)
+                point = self.position + Vector2(0, shield_radius).rotate(angle)
+                shield_points.append(point)
+            pygame.draw.polygon(screen, BLUE, shield_points, 1)
+            
+            # Draw shield count indicators below ship
+            shield_spacing = 15
+            for i in range(self.shields):
+                pygame.draw.circle(screen, BLUE, 
+                                 (int(self.position.x - self.size + (i * shield_spacing)), 
+                                  int(self.position.y + self.size + 15)), 5, 1)
+        
+        # Draw spread shot indicator
+        if self.spread_shot:
+            pygame.draw.circle(screen, YELLOW,
+                             (int(self.position.x), int(self.position.y + self.size + 15)), 5, 1)
 
     def update(self):
         keys = pygame.key.get_pressed()
@@ -62,6 +180,29 @@ class Player:
         # Screen wrapping
         self.position.x %= WIDTH
         self.position.y %= HEIGHT
+        
+        # Update spread shot timer
+        if self.spread_shot:
+            self.spread_shot_timer -= 1
+            if self.spread_shot_timer <= 0:
+                self.spread_shot = False
+
+        # Rotate shield bubble
+        self.shield_angle = (self.shield_angle + 2) % 360
+
+    def shoot(self):
+        bullets = []
+        nose_pos = self.get_nose_position()
+        
+        if self.spread_shot:
+            # Create three bullets at different angles
+            for angle_offset in [-20, 0, 20]:
+                bullets.append(Bullet(nose_pos.x, nose_pos.y, self.rotation + angle_offset))
+        else:
+            # Create single bullet
+            bullets.append(Bullet(nose_pos.x, nose_pos.y, self.rotation))
+        
+        return bullets
 
 class Bullet:
     def __init__(self, x, y, angle):
@@ -128,6 +269,94 @@ class ExplosionLine:
                            (int(self.position.x), int(self.position.y)),
                            (int(end_pos.x), int(end_pos.y)), 2)
 
+class EnemyBullet:
+    def __init__(self, x, y, target_pos):
+        self.position = Vector2(x, y)
+        # Calculate direction to target
+        direction = Vector2(target_pos.x - x, target_pos.y - y).normalize()
+        self.velocity = direction * ENEMY_BULLET_SPEED
+        self.lifetime = 120  # Slower bullets live longer
+
+    def update(self):
+        self.position += self.velocity
+        self.position.x %= WIDTH
+        self.position.y %= HEIGHT
+        self.lifetime -= 1
+
+    def draw(self, surface):
+        pygame.draw.circle(surface, RED, (int(self.position.x), int(self.position.y)), BULLET_SIZE)
+
+class EnemyShip:
+    def __init__(self, is_boss=False):
+        # Start from a random edge
+        if random.random() < 0.5:
+            self.position = Vector2(random.choice([0, WIDTH]), random.randint(0, HEIGHT))
+        else:
+            self.position = Vector2(random.randint(0, WIDTH), random.choice([0, HEIGHT]))
+        
+        self.velocity = Vector2(0, 0)
+        self.is_boss = is_boss
+        
+        # Boss has enhanced stats
+        if is_boss:
+            self.size = 35  # Bigger
+            self.shoot_cooldown = 60  # Faster shooting
+            self.speed = 2.5  # Faster movement
+            self.health = 3  # More health
+        else:
+            self.size = 25
+            self.shoot_cooldown = 120  # Slower shooting for regular enemy
+            self.speed = 1.5  # Slower movement
+            self.health = 1  # One hit kill
+        
+        self.current_cooldown = 0
+
+    def update(self, player_pos):
+        # Move towards player with some randomness
+        direction = Vector2(player_pos.x - self.position.x, 
+                          player_pos.y - self.position.y).normalize()
+        # Add slight randomness to movement
+        direction.rotate_ip(random.uniform(-15, 15))
+        
+        # Keep distance from player (don't get too close)
+        distance_to_player = self.position.distance_to(player_pos)
+        if distance_to_player < (300 if self.is_boss else 200):
+            direction = -direction
+        
+        # Update velocity and position
+        self.velocity = direction * self.speed
+        self.position += self.velocity
+        self.position.x %= WIDTH
+        self.position.y %= HEIGHT
+        
+        # Update shooting cooldown
+        if self.current_cooldown > 0:
+            self.current_cooldown -= 1
+
+    def can_shoot(self):
+        return self.current_cooldown <= 0
+
+    def shoot(self, target_pos):
+        self.current_cooldown = self.shoot_cooldown
+        return EnemyBullet(self.position.x, self.position.y, target_pos)
+
+    def draw(self, screen):
+        # Draw enemy ship as a diamond shape
+        points = [
+            (self.position.x, self.position.y - self.size),
+            (self.position.x + self.size, self.position.y),
+            (self.position.x, self.position.y + self.size),
+            (self.position.x - self.size, self.position.y)
+        ]
+        color = RED if not self.is_boss else (255, 0, 0)  # Brighter red for boss
+        pygame.draw.polygon(screen, color, points, 3 if self.is_boss else 2)
+        
+        # Draw health indicator
+        for i in range(self.health):
+            pygame.draw.circle(screen, color, 
+                             (int(self.position.x - self.size + 10 + i * 10), 
+                              int(self.position.y - self.size - 10)), 3)
+
 class Game:
     def __init__(self):
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -136,11 +365,24 @@ class Game:
         self.show_debug = False
         self.invincible = False
         self.paused = False
+        self.powerups = []
+        self.floating_powerup_timer = POWERUP_SPAWN_COOLDOWN
+        self.powerup_spawn_timers = {
+            PowerupType.SHIELD: 0,
+            PowerupType.SPREAD_SHOT: 0
+        }
+        self.enemy_spawn_timer = ENEMY_SPAWN_DELAY
+        self.enemies_remaining = 0
         self.reset_game()
 
     def reset_game(self):
         self.player = Player()
         self.level = 1
+        self.enemy = None
+        self.enemy_bullets = []
+        self.powerups = []
+        self.enemies_remaining = 0
+        self.enemy_spawn_timer = ENEMY_SPAWN_DELAY
         self.start_new_level()
         self.running = True
         self.game_over = False
@@ -171,15 +413,30 @@ class Game:
         # Clear any remaining objects
         self.asteroids = []
         self.bullets = []
+        self.enemy_bullets = []
+        self.enemy = None
+        
+        # Set up enemies for level 2
+        if self.level == 2:
+            self.enemies_remaining = 2
+            self.enemy_spawn_timer = ENEMY_SPAWN_DELAY
+        elif self.level == 3:
+            self.enemies_remaining = 1
+            self.enemy_spawn_timer = ENEMY_SPAWN_DELAY
+            self.enemy = EnemyShip(is_boss=True)
+        else:
+            self.enemies_remaining = 0
         
         # Number of asteroids increases with each level
-        num_asteroids = 3 + self.level
+        if self.level == 3:
+            num_asteroids = 2  # Minimal asteroids in boss fight
+        else:
+            num_asteroids = 3 + self.level
         
-        # Create new asteroids with increasing speed based on level
+        # Create new asteroids
         for _ in range(num_asteroids):
             x, y = self.get_safe_asteroid_position()
             asteroid = Asteroid(x, y)
-            # Increase asteroid speed by 10% each level
             speed_multiplier = 1 + (self.level - 1) * 0.1
             asteroid.velocity_x *= speed_multiplier
             asteroid.velocity_y *= speed_multiplier
@@ -189,7 +446,7 @@ class Game:
         self.level_transition_timer = 0
 
     def check_level_complete(self):
-        if len(self.asteroids) == 0 and not self.level_complete:
+        if len(self.asteroids) == 0 and (self.enemy is None or self.enemy.health <= 0) and not self.level_complete:
             self.level_complete = True
             self.level_transition_timer = 180  # 3 seconds at 60 FPS
 
@@ -199,24 +456,42 @@ class Game:
             angle = i * 30  # 360 degrees / 12 = 30 degrees between each line
             self.explosion_lines.append(ExplosionLine(x, y, angle))
 
+    def spawn_powerup(self, x, y, from_enemy=False, from_large_asteroid=False):
+        if from_enemy:
+            # Always spawn shield from defeated enemies if player has no shields
+            if self.player.shields == 0:
+                self.powerups.append(Powerup(x, y, PowerupType.SHIELD))
+        elif from_large_asteroid:
+            # Only spawn shield if player has no shields and 10% chance
+            if self.player.shields == 0 and random.random() < 0.1:
+                self.powerups.append(Powerup(x, y, PowerupType.SHIELD))
+        else:
+            # Floating powerups are always spread shot
+            self.powerups.append(Powerup(x, y, PowerupType.SPREAD_SHOT, is_floating=True))
+
     def check_player_asteroid_collision(self):
         # Check collision between player and asteroids
-        for asteroid in self.asteroids[:]:  # Use slice copy to allow modification during iteration
-            # Calculate distance between player center and asteroid center
+        for asteroid in self.asteroids[:]:
             dx = self.player.position.x - asteroid.x
             dy = self.player.position.y - asteroid.y
             distance = math.sqrt(dx**2 + dy**2)
             
-            # If distance is less than combined radii (player size/2 + asteroid size)
             if distance < (self.player.size/2 + asteroid.size):
                 if self.invincible:
-                    # Destroy asteroid instead of player
                     self.asteroids.remove(asteroid)
                     self.score += (3 - asteroid.size_index) * 100
                     self.create_explosion(asteroid.x, asteroid.y)
+                    # Only spawn shield from large asteroids when invincible
+                    if asteroid.size_index == 0:
+                        self.spawn_powerup(asteroid.x, asteroid.y, from_large_asteroid=True)
+                elif self.player.shields > 0:
+                    # Use up a shield instead of dying
+                    self.player.shields -= 1
+                    self.asteroids.remove(asteroid)
+                    self.create_explosion(asteroid.x, asteroid.y)
+                    # Don't spawn shield when using a shield
                 else:
                     self.game_over = True
-                    # Create explosion at player's position
                     self.create_explosion(self.player.position.x, self.player.position.y)
                 break
 
@@ -225,7 +500,6 @@ class Game:
             return
 
         if self.game_over:
-            # Update explosion lines even in game over state
             self.explosion_lines = [line for line in self.explosion_lines if line.lifetime > 0]
             for line in self.explosion_lines:
                 line.update()
@@ -238,14 +512,104 @@ class Game:
                 self.start_new_level()
             return
 
+        # Handle enemy spawning in level 2
+        if self.level == 2 and self.enemies_remaining > 0 and not self.enemy:
+            self.enemy_spawn_timer -= 1
+            if self.enemy_spawn_timer <= 0:
+                self.enemy = EnemyShip(is_boss=False)
+                self.enemy_spawn_timer = ENEMY_SPAWN_DELAY  # Reset for next enemy
+
+        # Update powerup spawn cooldowns
+        for ptype in self.powerup_spawn_timers:
+            if self.powerup_spawn_timers[ptype] > 0:
+                self.powerup_spawn_timers[ptype] -= 1
+
+        # Spawn floating spread shot powerups periodically
+        self.floating_powerup_timer -= 1
+        if self.floating_powerup_timer <= 0 and self.powerup_spawn_timers[PowerupType.SPREAD_SHOT] <= 0:
+            self.spawn_powerup(0, 0, False, False)
+            self.floating_powerup_timer = POWERUP_SPAWN_COOLDOWN
+            self.powerup_spawn_timers[PowerupType.SPREAD_SHOT] = POWERUP_SPAWN_COOLDOWN
+
         self.player.update()
+        
+        # Update and clean up powerups
+        self.powerups = [p for p in self.powerups if not p.collected]
+        for powerup in self.powerups:
+            powerup.update(self.asteroids)  # Pass asteroids for collision checking
+            # Check for collision with player
+            dx = powerup.position.x - self.player.position.x
+            dy = powerup.position.y - self.player.position.y
+            if math.sqrt(dx*dx + dy*dy) < (self.player.size + powerup.size):
+                if powerup.type == PowerupType.SHIELD:
+                    self.player.shields += 1
+                else:  # SPREAD_SHOT
+                    self.player.spread_shot = True
+                    self.player.spread_shot_timer = POWERUP_DURATION
+                powerup.collected = True
+
         for asteroid in self.asteroids:
             asteroid.update()
         
-        # Update bullets and remove dead ones
+        # Update enemy ship and bullets
+        if self.enemy and self.enemy.health > 0:
+            self.enemy.update(self.player.position)
+            
+            # Check for ship collision
+            dx = self.enemy.position.x - self.player.position.x
+            dy = self.enemy.position.y - self.player.position.y
+            distance = math.sqrt(dx*dx + dy*dy)
+            if distance < (self.player.size + self.enemy.size):
+                if self.invincible:
+                    # Destroy enemy ship on collision if invincible
+                    self.enemy.health = 0
+                    self.score += 1000 if self.enemy.is_boss else 500
+                    self.create_explosion(self.enemy.position.x, self.enemy.position.y)
+                    if self.level == 2:
+                        self.enemies_remaining -= 1
+                        self.spawn_powerup(self.enemy.position.x, self.enemy.position.y, from_enemy=True)
+                        self.enemy = None
+                else:
+                    # Player dies on collision if not invincible
+                    self.game_over = True
+                    self.create_explosion(self.player.position.x, self.player.position.y)
+            
+            if self.enemy.can_shoot():
+                self.enemy_bullets.append(self.enemy.shoot(self.player.position))
+        
+        # Update enemy bullets
+        self.enemy_bullets = [bullet for bullet in self.enemy_bullets if bullet.lifetime > 0]
+        for bullet in self.enemy_bullets:
+            bullet.update()
+            
+            # Check if enemy bullet hits player
+            dx = bullet.position.x - self.player.position.x
+            dy = bullet.position.y - self.player.position.y
+            if not self.invincible and math.sqrt(dx*dx + dy*dy) < self.player.size:
+                self.game_over = True
+                self.create_explosion(self.player.position.x, self.player.position.y)
+                break
+        
+        # Update player bullets
         self.bullets = [bullet for bullet in self.bullets if bullet.lifetime > 0]
         for bullet in self.bullets:
             bullet.update()
+            
+            # Check if bullet hits enemy ship
+            if self.enemy and self.enemy.health > 0:
+                dx = bullet.position.x - self.enemy.position.x
+                dy = bullet.position.y - self.enemy.position.y
+                if math.sqrt(dx*dx + dy*dy) < self.enemy.size:
+                    self.enemy.health -= 1
+                    self.bullets.remove(bullet)
+                    if self.enemy.health <= 0:
+                        self.score += 1000 if self.enemy.is_boss else 500
+                        self.create_explosion(self.enemy.position.x, self.enemy.position.y)
+                        if self.level == 2:
+                            self.enemies_remaining -= 1
+                            self.spawn_powerup(self.enemy.position.x, self.enemy.position.y, from_enemy=True)
+                            self.enemy = None
+                    break
 
         # Check for player collision with asteroids
         self.check_player_asteroid_collision()
@@ -258,9 +622,14 @@ class Game:
                 distance = math.sqrt(dx**2 + dy**2)
                 
                 if distance < asteroid.size:
-                    self.bullets.remove(bullet)
+                    if bullet in self.bullets:  # Check if bullet still exists
+                        self.bullets.remove(bullet)
                     self.asteroids.remove(asteroid)
                     self.score += (3 - asteroid.size_index) * 100
+                    
+                    # Only spawn powerups from large asteroids (size_index 0)
+                    if asteroid.size_index == 0:
+                        self.spawn_powerup(asteroid.x, asteroid.y, from_large_asteroid=True)
                     
                     # Split asteroid if it's not the smallest size
                     if asteroid.size_index < len(ASTEROID_SIZES) - 1:
@@ -289,7 +658,7 @@ class Game:
             return
 
         # Semi-transparent background for debug menu
-        debug_surface = pygame.Surface((300, 220))  # Made taller for new option
+        debug_surface = pygame.Surface((300, 260))  # Made taller for powerup timers
         debug_surface.fill((50, 50, 50))
         debug_surface.set_alpha(200)
         self.screen.blit(debug_surface, (10, 50))
@@ -302,6 +671,8 @@ class Game:
             f"Asteroids: {len(self.asteroids)}",
             f"Bullets: {len(self.bullets)}",
             f"Invincible: {self.invincible}",
+            f"Shield Cooldown: {max(0, self.powerup_spawn_timers[PowerupType.SHIELD] / FPS):.1f}s",
+            f"Spread Cooldown: {max(0, self.powerup_spawn_timers[PowerupType.SPREAD_SHOT] / FPS):.1f}s",
             "F3: Toggle Debug",
             "F4: Toggle Invincible",
             "F5: Skip Level",
@@ -344,14 +715,33 @@ class Game:
     def draw(self):
         self.screen.fill(BLACK)
         
+        # Draw powerups
+        for powerup in self.powerups:
+            powerup.draw(self.screen)
+        
         # Draw game objects
         if not self.game_over:
             self.player.draw(self.screen)
-            # Draw invincibility indicator
             if self.invincible:
                 pygame.draw.circle(self.screen, WHITE, 
                                  (int(self.player.position.x), int(self.player.position.y)), 
                                  self.player.size + 5, 1)
+            
+            # Draw spread shot timer if active
+            if self.player.spread_shot:
+                remaining_time = self.player.spread_shot_timer / FPS
+                timer_text = f"{int(remaining_time)}s"
+                font = pygame.font.Font(None, 24)
+                text = font.render(timer_text, True, YELLOW)
+                text_rect = text.get_rect(center=(self.player.position.x, 
+                                                self.player.position.y + self.player.size + 30))
+                self.screen.blit(text, text_rect)
+        
+        # Draw enemy ship and bullets
+        if self.enemy and self.enemy.health > 0:
+            self.enemy.draw(self.screen)
+        for bullet in self.enemy_bullets:
+            bullet.draw(self.screen)
         
         for bullet in self.bullets:
             bullet.draw(self.screen)
@@ -401,6 +791,17 @@ class Game:
             restart_rect = restart_text.get_rect(center=(WIDTH/2, HEIGHT/2 + 100))
             self.screen.blit(restart_text, restart_rect)
 
+        # Draw enemy ships remaining (if in level 2 or 3)
+        if self.level >= 2:
+            font = pygame.font.Font(None, 36)
+            if self.level == 2:
+                enemy_text = f"Enemy Ships: {self.enemies_remaining}"
+            else:
+                enemy_text = "BOSS" if self.enemy and self.enemy.health > 0 else ""
+            text = font.render(enemy_text, True, RED)
+            text_rect = text.get_rect(center=(WIDTH/2, 30))
+            self.screen.blit(text, text_rect)
+
         # Draw debug menu last so it overlays everything else
         self.draw_debug_menu()
         
@@ -422,32 +823,25 @@ class Game:
                 elif event.key == pygame.K_p:
                     self.paused = not self.paused
                 elif event.key == pygame.K_SPACE and not self.game_over and not self.level_complete and not self.paused:
-                    # Create new bullet at ship's nose position with ship's angle
-                    nose_pos = self.player.get_nose_position()
-                    self.bullets.append(Bullet(nose_pos.x, nose_pos.y, self.player.rotation))
+                    # Use player's shoot method which handles spread shot
+                    self.bullets.extend(self.player.shoot())
                 elif event.key == pygame.K_r and self.game_over:
-                    # Reset game
                     self.reset_game()
                 # Debug controls
                 elif event.key == pygame.K_F3:
                     self.show_debug = not self.show_debug
                 elif event.key == pygame.K_F4 and self.show_debug:
-                    # Toggle invincibility
                     self.invincible = not self.invincible
                 elif event.key == pygame.K_F5 and self.show_debug:
-                    # Skip current level
                     self.level_complete = True
                     self.level_transition_timer = 180
                 elif event.key == pygame.K_F6 and self.show_debug:
-                    # Previous level
                     self.level = max(1, self.level - 1)
                     self.start_new_level()
                 elif event.key == pygame.K_F7 and self.show_debug:
-                    # Next level
                     self.level += 1
                     self.start_new_level()
                 elif event.key == pygame.K_F8 and self.show_debug:
-                    # Clear all asteroids
                     self.asteroids.clear()
 
     def run(self):
