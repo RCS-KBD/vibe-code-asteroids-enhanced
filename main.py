@@ -13,6 +13,10 @@ HEIGHT = 600
 FPS = 60
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
+SHIP_SIZE = 20
+BULLET_SIZE = 3
+BULLET_SPEED = 10
+ASTEROID_SIZES = [50, 30, 20]
 
 class Player:
     def __init__(self):
@@ -54,31 +58,51 @@ class Player:
         self.position.x %= WIDTH
         self.position.y %= HEIGHT
 
-class Asteroid:
-    def __init__(self, size=3):
-        self.size = size
-        self.radius = size * 20
-        self.position = Vector2(
-            random.randrange(WIDTH),
-            random.randrange(HEIGHT)
-        )
-        self.velocity = Vector2(
-            random.random() * 2 - 1,
-            random.random() * 2 - 1
-        )
-        self.rotation = 0
-        self.rotation_speed = random.random() * 2 - 1
-
-    def draw(self, screen):
-        pygame.draw.circle(screen, WHITE, self.position, self.radius, 2)
+class Bullet:
+    def __init__(self, x, y, angle):
+        self.x = x
+        self.y = y
+        angle_rad = math.radians(angle)
+        self.velocity_x = math.cos(angle_rad) * BULLET_SPEED
+        self.velocity_y = -math.sin(angle_rad) * BULLET_SPEED
+        self.lifetime = 60  # frames
 
     def update(self):
-        self.position += self.velocity
-        self.rotation += self.rotation_speed
+        self.x += self.velocity_x
+        self.y += self.velocity_y
+        self.x %= WIDTH
+        self.y %= HEIGHT
+        self.lifetime -= 1
 
-        # Screen wrapping
-        self.position.x %= WIDTH
-        self.position.y %= HEIGHT
+    def draw(self, surface):
+        pygame.draw.circle(surface, WHITE, (int(self.x), int(self.y)), BULLET_SIZE)
+
+class Asteroid:
+    def __init__(self, x=None, y=None, size_index=0):
+        self.size_index = size_index
+        self.size = ASTEROID_SIZES[size_index]
+        if x is None:
+            self.x = random.randint(0, WIDTH)
+        else:
+            self.x = x
+        if y is None:
+            self.y = random.randint(0, HEIGHT)
+        else:
+            self.y = y
+        
+        angle = random.random() * 2 * math.pi
+        speed = random.random() * 2 + 1
+        self.velocity_x = math.cos(angle) * speed
+        self.velocity_y = math.sin(angle) * speed
+
+    def draw(self, screen):
+        pygame.draw.circle(screen, WHITE, (int(self.x), int(self.y)), self.size, 2)
+
+    def update(self):
+        self.x += self.velocity_x
+        self.y += self.velocity_y
+        self.x %= WIDTH
+        self.y %= HEIGHT
 
 class Game:
     def __init__(self):
@@ -88,6 +112,8 @@ class Game:
         self.player = Player()
         self.asteroids = [Asteroid() for _ in range(4)]
         self.running = True
+        self.bullets = []
+        self.score = 0
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -96,17 +122,54 @@ class Game:
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     self.running = False
+                elif event.key == pygame.K_SPACE:
+                    # Create new bullet at ship's position with ship's angle
+                    self.bullets.append(Bullet(self.player.position.x, self.player.position.y, self.player.rotation))
 
     def update(self):
         self.player.update()
         for asteroid in self.asteroids:
             asteroid.update()
+        
+        # Update bullets and remove dead ones
+        self.bullets = [bullet for bullet in self.bullets if bullet.lifetime > 0]
+        for bullet in self.bullets:
+            bullet.update()
+
+        # Collision detection
+        for bullet in self.bullets[:]:
+            for asteroid in self.asteroids[:]:
+                dx = bullet.x - asteroid.x
+                dy = bullet.y - asteroid.y
+                distance = math.sqrt(dx**2 + dy**2)
+                
+                if distance < asteroid.size:
+                    self.bullets.remove(bullet)
+                    self.asteroids.remove(asteroid)
+                    self.score += (3 - asteroid.size_index) * 100
+                    
+                    # Split asteroid if it's not the smallest size
+                    if asteroid.size_index < len(ASTEROID_SIZES) - 1:
+                        for _ in range(2):
+                            self.asteroids.append(Asteroid(
+                                asteroid.x, asteroid.y, 
+                                asteroid.size_index + 1
+                            ))
+                    break
 
     def draw(self):
         self.screen.fill(BLACK)
         self.player.draw(self.screen)
+        for bullet in self.bullets:
+            bullet.draw(self.screen)
         for asteroid in self.asteroids:
             asteroid.draw(self.screen)
+        
+        # Draw score
+        font = pygame.font.Font(None, 36)
+        score_text = font.render(f"Score: {self.score}", True, WHITE)
+        self.screen.blit(score_text, (10, 10))
+
         pygame.display.flip()
 
     def run(self):
