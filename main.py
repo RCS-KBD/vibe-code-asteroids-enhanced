@@ -27,6 +27,11 @@ class Player:
         self.rotation = 0
         self.size = 20
 
+    def get_nose_position(self):
+        # Calculate the position of the ship's nose using Vector2
+        nose_offset = Vector2(0, -self.size).rotate(self.rotation)
+        return self.position + nose_offset
+
     def draw(self, screen):
         # Draw triangular ship
         points = [
@@ -123,8 +128,9 @@ class Game:
                 if event.key == pygame.K_ESCAPE:
                     self.running = False
                 elif event.key == pygame.K_SPACE:
-                    # Create new bullet at ship's position with ship's angle
-                    self.bullets.append(Bullet(self.player.position.x, self.player.position.y, self.player.rotation))
+                    # Create new bullet at ship's nose position with ship's angle
+                    nose_x, nose_y = self.player.get_nose_position()
+                    self.bullets.append(Bullet(nose_x, nose_y, self.player.rotation))
 
     def update(self):
         self.player.update()
