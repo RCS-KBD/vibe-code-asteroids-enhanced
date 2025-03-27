@@ -9,8 +9,8 @@ from enum import Enum
 pygame.init()
 
 # Constants
-WIDTH = 800
-HEIGHT = 600
+WIDTH = 1024
+HEIGHT = 768
 FPS = 60
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -52,8 +52,8 @@ class Powerup:
             self.position.x = -POWERUP_SIZE if random.random() < 0.5 else WIDTH + POWERUP_SIZE
             self.position.y = random.randint(100, HEIGHT - 100)
             # Move in the opposite direction of where we spawned
-            self.velocity = Vector2(1 if self.position.x < 0 else -1, 0)
-            self.speed = 1.5  # Slow movement across screen
+            self.velocity = Vector2(2 if self.position.x < 0 else -2, 0)  # Increased base speed
+            self.speed = 1  # Base movement speed
 
     def bounce_off_asteroid(self, asteroid_x, asteroid_y):
         # Calculate direction from asteroid to powerup
@@ -84,29 +84,27 @@ class Powerup:
                     break
             
             # Screen wrapping
-            self.position.x %= WIDTH
-            self.position.y %= HEIGHT
+            if self.position.x < -self.size:
+                self.position.x = WIDTH + self.size
+            elif self.position.x > WIDTH + self.size:
+                self.position.x = -self.size
+            self.position.y = (self.position.y + self.velocity.y) % HEIGHT
 
     def draw(self, screen):
-        # Draw different shapes based on powerup type
         if self.type == PowerupType.SHIELD:
-            # Draw shield powerup (hexagon)
-            points = []
-            for i in range(6):
-                angle = math.radians(self.angle + i * 60)
-                point_x = self.position.x + math.cos(angle) * self.size
-                point_y = self.position.y + self.float_offset + math.sin(angle) * self.size
-                points.append((point_x, point_y))
-            pygame.draw.polygon(screen, BLUE, points, 2)
-        else:  # SPREAD_SHOT
+            # Draw shield powerup (circle)
+            pygame.draw.circle(screen, BLUE, 
+                             (int(self.position.x), 
+                              int(self.position.y + self.float_offset)), 
+                             self.size, 1)
+        else:
             # Draw spread shot powerup (triangle)
             points = []
             for i in range(3):
-                angle = math.radians(self.angle + i * 120)
-                point_x = self.position.x + math.cos(angle) * self.size
-                point_y = self.position.y + self.float_offset + math.sin(angle) * self.size
-                points.append((point_x, point_y))
-            pygame.draw.polygon(screen, YELLOW, points, 2)
+                angle = self.angle + i * 120
+                point = self.position + Vector2(0, -self.size).rotate(angle)
+                points.append(point)
+            pygame.draw.polygon(screen, YELLOW, points, 1)
 
 class Player:
     def __init__(self):
@@ -363,6 +361,8 @@ class Game:
         pygame.display.set_caption("Vibe Code Asteroids")
         self.clock = pygame.time.Clock()
         self.show_debug = False
+        self.debug_invincible = False  # Debug invincibility
+        self.debug_spread_shot = False  # Debug spread shot
         self.invincible = False
         self.paused = False
         self.powerups = []
@@ -658,7 +658,7 @@ class Game:
             return
 
         # Semi-transparent background for debug menu
-        debug_surface = pygame.Surface((300, 260))  # Made taller for powerup timers
+        debug_surface = pygame.Surface((300, 250))  # Made taller for more options
         debug_surface.fill((50, 50, 50))
         debug_surface.set_alpha(200)
         self.screen.blit(debug_surface, (10, 50))
@@ -670,15 +670,16 @@ class Game:
             f"FPS: {int(self.clock.get_fps())}",
             f"Asteroids: {len(self.asteroids)}",
             f"Bullets: {len(self.bullets)}",
-            f"Invincible: {self.invincible}",
-            f"Shield Cooldown: {max(0, self.powerup_spawn_timers[PowerupType.SHIELD] / FPS):.1f}s",
-            f"Spread Cooldown: {max(0, self.powerup_spawn_timers[PowerupType.SPREAD_SHOT] / FPS):.1f}s",
+            f"Player Shields: {self.player.shields}",
+            f"Spread Shot: {'ON' if self.player.spread_shot else 'OFF'}",
             "F3: Toggle Debug",
             "F4: Toggle Invincible",
             "F5: Skip Level",
             "F6: Previous Level",
             "F7: Next Level",
-            "F8: Clear Asteroids"
+            "F8: Clear Asteroids",
+            "F9: Toggle Spread Shot",
+            "F10: Add Shield"
         ]
 
         for item in debug_items:
@@ -827,14 +828,14 @@ class Game:
                     self.bullets.extend(self.player.shoot())
                 elif event.key == pygame.K_r and self.game_over:
                     self.reset_game()
-                # Debug controls
                 elif event.key == pygame.K_F3:
                     self.show_debug = not self.show_debug
                 elif event.key == pygame.K_F4 and self.show_debug:
-                    self.invincible = not self.invincible
+                    self.debug_invincible = not self.debug_invincible
+                    self.invincible = self.debug_invincible
                 elif event.key == pygame.K_F5 and self.show_debug:
                     self.level_complete = True
-                    self.level_transition_timer = 180
+                    self.level_transition_timer = 120
                 elif event.key == pygame.K_F6 and self.show_debug:
                     self.level = max(1, self.level - 1)
                     self.start_new_level()
@@ -843,6 +844,13 @@ class Game:
                     self.start_new_level()
                 elif event.key == pygame.K_F8 and self.show_debug:
                     self.asteroids.clear()
+                elif event.key == pygame.K_F9 and self.show_debug:
+                    self.debug_spread_shot = not self.debug_spread_shot
+                    self.player.spread_shot = self.debug_spread_shot
+                    if self.player.spread_shot:
+                        self.player.spread_shot_timer = POWERUP_DURATION
+                elif event.key == pygame.K_F10 and self.show_debug:
+                    self.player.shields += 1
 
     def run(self):
         while self.running:
