@@ -133,13 +133,44 @@ class Game:
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption("Vibe Code Asteroids")
         self.clock = pygame.time.Clock()
+        self.reset_game()
+
+    def reset_game(self):
         self.player = Player()
-        self.asteroids = [Asteroid() for _ in range(4)]
+        self.level = 1
+        self.start_new_level()
         self.running = True
         self.game_over = False
+        self.level_complete = False
+        self.level_transition_timer = 0
         self.bullets = []
         self.score = 0
         self.explosion_lines = []
+
+    def start_new_level(self):
+        # Clear any remaining objects
+        self.asteroids = []
+        self.bullets = []
+        
+        # Number of asteroids increases with each level
+        num_asteroids = 3 + self.level
+        
+        # Create new asteroids with increasing speed based on level
+        for _ in range(num_asteroids):
+            asteroid = Asteroid()
+            # Increase asteroid speed by 10% each level
+            speed_multiplier = 1 + (self.level - 1) * 0.1
+            asteroid.velocity_x *= speed_multiplier
+            asteroid.velocity_y *= speed_multiplier
+            self.asteroids.append(asteroid)
+        
+        self.level_complete = False
+        self.level_transition_timer = 0
+
+    def check_level_complete(self):
+        if len(self.asteroids) == 0 and not self.level_complete:
+            self.level_complete = True
+            self.level_transition_timer = 180  # 3 seconds at 60 FPS
 
     def create_explosion(self, x, y):
         # Create 12 lines shooting out in different directions
@@ -163,39 +194,60 @@ class Game:
                 break
 
     def update(self):
-        if not self.game_over:
-            self.player.update()
-            for asteroid in self.asteroids:
-                asteroid.update()
-            
-            # Update bullets and remove dead ones
-            self.bullets = [bullet for bullet in self.bullets if bullet.lifetime > 0]
-            for bullet in self.bullets:
-                bullet.update()
+        if self.game_over:
+            # Update explosion lines even in game over state
+            self.explosion_lines = [line for line in self.explosion_lines if line.lifetime > 0]
+            for line in self.explosion_lines:
+                line.update()
+            return
 
-            # Check for player collision with asteroids
-            self.check_player_asteroid_collision()
+        if self.level_complete:
+            self.level_transition_timer -= 1
+            if self.level_transition_timer <= 0:
+                self.level += 1
+                self.start_new_level()
+            return
 
-            # Bullet-asteroid collision detection
-            for bullet in self.bullets[:]:
-                for asteroid in self.asteroids[:]:
-                    dx = bullet.position.x - asteroid.x
-                    dy = bullet.position.y - asteroid.y
-                    distance = math.sqrt(dx**2 + dy**2)
+        self.player.update()
+        for asteroid in self.asteroids:
+            asteroid.update()
+        
+        # Update bullets and remove dead ones
+        self.bullets = [bullet for bullet in self.bullets if bullet.lifetime > 0]
+        for bullet in self.bullets:
+            bullet.update()
+
+        # Check for player collision with asteroids
+        self.check_player_asteroid_collision()
+
+        # Bullet-asteroid collision detection
+        for bullet in self.bullets[:]:
+            for asteroid in self.asteroids[:]:
+                dx = bullet.position.x - asteroid.x
+                dy = bullet.position.y - asteroid.y
+                distance = math.sqrt(dx**2 + dy**2)
+                
+                if distance < asteroid.size:
+                    self.bullets.remove(bullet)
+                    self.asteroids.remove(asteroid)
+                    self.score += (3 - asteroid.size_index) * 100
                     
-                    if distance < asteroid.size:
-                        self.bullets.remove(bullet)
-                        self.asteroids.remove(asteroid)
-                        self.score += (3 - asteroid.size_index) * 100
-                        
-                        # Split asteroid if it's not the smallest size
-                        if asteroid.size_index < len(ASTEROID_SIZES) - 1:
-                            for _ in range(2):
-                                self.asteroids.append(Asteroid(
-                                    asteroid.x, asteroid.y, 
-                                    asteroid.size_index + 1
-                                ))
-                        break
+                    # Split asteroid if it's not the smallest size
+                    if asteroid.size_index < len(ASTEROID_SIZES) - 1:
+                        for _ in range(2):
+                            new_asteroid = Asteroid(
+                                asteroid.x, asteroid.y, 
+                                asteroid.size_index + 1
+                            )
+                            # Apply same level speed multiplier
+                            speed_multiplier = 1 + (self.level - 1) * 0.1
+                            new_asteroid.velocity_x *= speed_multiplier
+                            new_asteroid.velocity_y *= speed_multiplier
+                            self.asteroids.append(new_asteroid)
+                    break
+
+        # Check if level is complete
+        self.check_level_complete()
 
         # Update explosion lines
         self.explosion_lines = [line for line in self.explosion_lines if line.lifetime > 0]
@@ -217,10 +269,28 @@ class Game:
         for line in self.explosion_lines:
             line.draw(self.screen)
 
-        # Draw score
+        # Draw HUD
         font = pygame.font.Font(None, 36)
+        # Draw score in top left
         score_text = font.render(f"Score: {self.score}", True, WHITE)
         self.screen.blit(score_text, (10, 10))
+        # Draw level in top right
+        level_text = font.render(f"Level: {self.level}", True, WHITE)
+        level_rect = level_text.get_rect()
+        level_rect.topright = (WIDTH - 10, 10)
+        self.screen.blit(level_text, level_rect)
+
+        # Draw level complete message
+        if self.level_complete and not self.game_over:
+            font_large = pygame.font.Font(None, 74)
+            level_complete_text = font_large.render(f"Level {self.level} Complete!", True, WHITE)
+            text_rect = level_complete_text.get_rect(center=(WIDTH/2, HEIGHT/2 - 50))
+            self.screen.blit(level_complete_text, text_rect)
+            
+            font = pygame.font.Font(None, 48)
+            next_level_text = font.render(f"Get Ready for Level {self.level + 1}", True, WHITE)
+            next_rect = next_level_text.get_rect(center=(WIDTH/2, HEIGHT/2 + 50))
+            self.screen.blit(next_level_text, next_rect)
 
         # Draw game over message
         if self.game_over:
@@ -247,13 +317,13 @@ class Game:
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     self.running = False
-                elif event.key == pygame.K_SPACE and not self.game_over:
+                elif event.key == pygame.K_SPACE and not self.game_over and not self.level_complete:
                     # Create new bullet at ship's nose position with ship's angle
                     nose_pos = self.player.get_nose_position()
                     self.bullets.append(Bullet(nose_pos.x, nose_pos.y, self.player.rotation))
                 elif event.key == pygame.K_r and self.game_over:
                     # Reset game
-                    self.__init__()
+                    self.reset_game()
 
     def run(self):
         while self.running:
