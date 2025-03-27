@@ -65,22 +65,19 @@ class Player:
 
 class Bullet:
     def __init__(self, x, y, angle):
-        self.x = x
-        self.y = y
-        angle_rad = math.radians(angle)
-        self.velocity_x = math.cos(angle_rad) * BULLET_SPEED
-        self.velocity_y = -math.sin(angle_rad) * BULLET_SPEED
+        self.position = Vector2(x, y)
+        # Use the same Vector2 direction calculation as the ship's nose
+        self.velocity = Vector2(0, -BULLET_SPEED).rotate(angle)
         self.lifetime = 60  # frames
 
     def update(self):
-        self.x += self.velocity_x
-        self.y += self.velocity_y
-        self.x %= WIDTH
-        self.y %= HEIGHT
+        self.position += self.velocity
+        self.position.x %= WIDTH
+        self.position.y %= HEIGHT
         self.lifetime -= 1
 
     def draw(self, surface):
-        pygame.draw.circle(surface, WHITE, (int(self.x), int(self.y)), BULLET_SIZE)
+        pygame.draw.circle(surface, WHITE, (int(self.position.x), int(self.position.y)), BULLET_SIZE)
 
 class Asteroid:
     def __init__(self, x=None, y=None, size_index=0):
@@ -129,8 +126,8 @@ class Game:
                     self.running = False
                 elif event.key == pygame.K_SPACE:
                     # Create new bullet at ship's nose position with ship's angle
-                    nose_x, nose_y = self.player.get_nose_position()
-                    self.bullets.append(Bullet(nose_x, nose_y, self.player.rotation))
+                    nose_pos = self.player.get_nose_position()
+                    self.bullets.append(Bullet(nose_pos.x, nose_pos.y, self.player.rotation))
 
     def update(self):
         self.player.update()
@@ -145,8 +142,8 @@ class Game:
         # Collision detection
         for bullet in self.bullets[:]:
             for asteroid in self.asteroids[:]:
-                dx = bullet.x - asteroid.x
-                dy = bullet.y - asteroid.y
+                dx = bullet.position.x - asteroid.x
+                dy = bullet.position.y - asteroid.y
                 distance = math.sqrt(dx**2 + dy**2)
                 
                 if distance < asteroid.size:
