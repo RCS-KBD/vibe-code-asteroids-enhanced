@@ -106,6 +106,28 @@ class Asteroid:
         self.x %= WIDTH
         self.y %= HEIGHT
 
+class ExplosionLine:
+    def __init__(self, x, y, angle):
+        self.position = Vector2(x, y)
+        self.velocity = Vector2(0, -5).rotate(angle)  # Lines shoot out at different angles
+        self.lifetime = 30  # frames
+        self.length = 20  # pixels
+
+    def update(self):
+        self.position += self.velocity
+        self.lifetime -= 1
+
+    def draw(self, surface):
+        if self.lifetime > 0:
+            # Calculate end point of the line
+            end_pos = self.position + self.velocity.normalize() * self.length
+            # Fade out the line as lifetime decreases
+            alpha = int((self.lifetime / 30) * 255)
+            color = (255, 255, 255, alpha)
+            pygame.draw.line(surface, color, 
+                           (int(self.position.x), int(self.position.y)),
+                           (int(end_pos.x), int(end_pos.y)), 2)
+
 class Game:
     def __init__(self):
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -117,6 +139,13 @@ class Game:
         self.game_over = False
         self.bullets = []
         self.score = 0
+        self.explosion_lines = []
+
+    def create_explosion(self, x, y):
+        # Create 12 lines shooting out in different directions
+        for i in range(12):
+            angle = i * 30  # 360 degrees / 12 = 30 degrees between each line
+            self.explosion_lines.append(ExplosionLine(x, y, angle))
 
     def check_player_asteroid_collision(self):
         # Check collision between player and asteroids
@@ -129,6 +158,8 @@ class Game:
             # If distance is less than combined radii (player size/2 + asteroid size)
             if distance < (self.player.size/2 + asteroid.size):
                 self.game_over = True
+                # Create explosion at player's position
+                self.create_explosion(self.player.position.x, self.player.position.y)
                 break
 
     def update(self):
@@ -166,6 +197,11 @@ class Game:
                                 ))
                         break
 
+        # Update explosion lines
+        self.explosion_lines = [line for line in self.explosion_lines if line.lifetime > 0]
+        for line in self.explosion_lines:
+            line.update()
+
     def draw(self):
         self.screen.fill(BLACK)
         
@@ -177,6 +213,10 @@ class Game:
         for asteroid in self.asteroids:
             asteroid.draw(self.screen)
         
+        # Draw explosion lines
+        for line in self.explosion_lines:
+            line.draw(self.screen)
+
         # Draw score
         font = pygame.font.Font(None, 36)
         score_text = font.render(f"Score: {self.score}", True, WHITE)
