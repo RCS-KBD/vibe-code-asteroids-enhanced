@@ -1,0 +1,31 @@
+2025-03-27 16:07:31,842 - root - INFO - Game logging initialized
+2025-03-27 16:07:32,067 - src.managers.sound_manager - DEBUG - Loaded sound: thrust from assets\sounds\thrusterFire_000.ogg
+2025-03-27 16:07:32,068 - src.managers.sound_manager - DEBUG - Loaded sound: shoot from assets\sounds\laserSmall_000.ogg
+2025-03-27 16:07:32,070 - src.managers.sound_manager - DEBUG - Loaded sound: enemy_shoot from assets\sounds\laserSmall_001.ogg
+2025-03-27 16:07:32,072 - src.managers.sound_manager - DEBUG - Loaded sound: explosion_small from assets\sounds\explosionCrunch_000.ogg
+2025-03-27 16:07:32,076 - src.managers.sound_manager - DEBUG - Loaded sound: explosion_medium from assets\sounds\explosionCrunch_001.ogg
+2025-03-27 16:07:32,080 - src.managers.sound_manager - DEBUG - Loaded sound: explosion_large from assets\sounds\explosionCrunch_002.ogg
+2025-03-27 16:07:32,081 - src.managers.sound_manager - DEBUG - Loaded sound: powerup from assets\sounds\laserRetro_003.ogg
+2025-03-27 16:07:32,084 - src.managers.sound_manager - DEBUG - Loaded sound: shield_hit from assets\sounds\forceField_000.ogg
+2025-03-27 16:07:32,087 - src.managers.sound_manager - DEBUG - Loaded sound: level_complete from assets\sounds\laserLarge_003.ogg
+2025-03-27 16:07:32,090 - src.managers.sound_manager - DEBUG - Loaded sound: game_over from assets\sounds\lowFrequency_explosion_000.ogg
+2025-03-27 16:07:32,091 - src.managers.game_manager - DEBUG - Spawned 4 asteroids for level 1
+2025-03-27 16:07:32,091 - src.managers.game_manager - INFO - Game manager initialized
+2025-03-27 16:07:32,091 - __main__ - INFO - Game initialized
+2025-03-27 16:07:32,093 - src.managers.game_manager - INFO - Level 1 complete
+2025-03-27 16:07:37,345 - src.managers.game_manager - DEBUG - Spawned 6 asteroids for level 2
+2025-03-27 16:07:37,345 - src.managers.game_manager - INFO - Starting level 2
+2025-03-27 16:07:37,345 - src.managers.game_manager - INFO - Level 2 complete
+2025-03-27 16:07:41,402 - src.managers.game_manager - DEBUG - Spawned 8 asteroids for level 3
+2025-03-27 16:07:41,402 - src.managers.game_manager - INFO - Starting level 3
+2025-03-27 16:07:41,402 - src.managers.game_manager - INFO - Level 3 complete
+2025-03-27 16:07:41,782 - src.managers.game_manager - DEBUG - Spawned 10 asteroids for level 4
+2025-03-27 16:07:41,782 - src.managers.game_manager - INFO - Starting level 4
+2025-03-27 16:07:41,782 - src.managers.game_manager - INFO - Level 4 complete
+2025-03-27 16:07:42,149 - src.managers.game_manager - DEBUG - Spawned 12 asteroids for level 5
+2025-03-27 16:07:42,150 - src.managers.game_manager - INFO - Starting level 5
+2025-03-27 16:07:42,150 - src.managers.game_manager - INFO - Level 5 complete
+2025-03-27 16:07:42,480 - src.managers.game_manager - DEBUG - Spawned 14 asteroids for level 6
+2025-03-27 16:07:42,480 - src.managers.game_manager - INFO - Starting level 6
+2025-03-27 16:07:42,480 - src.managers.game_manager - INFO - Level 6 complete
+2025-03-27 16:07:44,582 - __main__ - INFO - Game shutting down

@@ -1,0 +1,2 @@
+2025-03-27 17:00:02,497 - src.utils.logging_config - INFO - Logging initialized
+2025-03-27 17:00:02,712 - src.managers.game_manager - INFO - Game manager initialized

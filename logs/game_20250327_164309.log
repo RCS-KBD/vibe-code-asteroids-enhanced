@@ -1,0 +1,23 @@
+2025-03-27 16:43:09,733 - root - INFO - Game logging initialized
+2025-03-27 16:43:09,930 - src.managers.sound_manager - WARNING - Sound file not found: assets\sounds\shoot.wav
+2025-03-27 16:43:09,944 - src.managers.sound_manager - WARNING - Sound file not found: assets\sounds\explosion.wav
+2025-03-27 16:43:09,951 - src.managers.sound_manager - WARNING - Sound file not found: assets\sounds\powerup.wav
+2025-03-27 16:43:09,953 - src.managers.sound_manager - WARNING - Sound file not found: assets\sounds\shield_hit.wav
+2025-03-27 16:43:09,960 - src.managers.sound_manager - WARNING - Sound file not found: assets\sounds\level_complete.wav
+2025-03-27 16:43:09,964 - src.managers.game_manager - DEBUG - Spawned 4 asteroids for level 1
+2025-03-27 16:43:09,964 - src.managers.game_manager - INFO - Game manager initialized
+2025-03-27 16:43:12,748 - src.managers.sound_manager - WARNING - Sound not found: explosion
+2025-03-27 16:43:12,766 - src.managers.sound_manager - WARNING - Sound not found: explosion
+2025-03-27 16:43:17,124 - src.managers.sound_manager - WARNING - Sound not found: explosion
+2025-03-27 16:43:18,354 - src.managers.sound_manager - WARNING - Sound not found: level_complete
+2025-03-27 16:43:22,559 - src.managers.game_manager - DEBUG - Spawned 6 asteroids for level 2
+2025-03-27 16:43:22,559 - src.managers.game_manager - INFO - Starting level 2
+2025-03-27 16:43:23,367 - src.managers.sound_manager - WARNING - Sound not found: level_complete
+2025-03-27 16:43:25,715 - src.managers.game_manager - DEBUG - Spawned 8 asteroids for level 3
+2025-03-27 16:43:25,715 - src.managers.game_manager - INFO - Starting level 3
+2025-03-27 16:43:26,590 - src.managers.sound_manager - WARNING - Sound not found: level_complete
+2025-03-27 16:43:27,902 - src.managers.game_manager - DEBUG - Spawned 10 asteroids for level 4
+2025-03-27 16:43:27,902 - src.managers.game_manager - INFO - Starting level 4
+2025-03-27 16:43:28,645 - src.managers.sound_manager - WARNING - Sound not found: level_complete
+2025-03-27 16:43:29,277 - src.managers.game_manager - DEBUG - Spawned 12 asteroids for level 5
+2025-03-27 16:43:29,277 - src.managers.game_manager - INFO - Starting level 5

@@ -1,0 +1,5 @@
+2025-03-27 16:44:55,287 - root - INFO - Game logging initialized
+2025-03-27 16:44:55,498 - src.managers.game_manager - DEBUG - Spawned 4 asteroids for level 1
+2025-03-27 16:44:55,498 - src.managers.game_manager - INFO - Game manager initialized
+2025-03-27 16:45:07,444 - src.managers.game_manager - DEBUG - Spawned 6 asteroids for level 2
+2025-03-27 16:45:07,444 - src.managers.game_manager - INFO - Starting level 2

@@ -1,0 +1,19 @@
+2025-03-27 16:46:05,289 - root - INFO - Game logging initialized
+2025-03-27 16:46:05,515 - src.managers.game_manager - DEBUG - Spawned 4 asteroids for level 1
+2025-03-27 16:46:05,515 - src.managers.game_manager - INFO - Game manager initialized
+2025-03-27 16:46:18,475 - src.managers.game_manager - DEBUG - Spawned 4 asteroids for level 1
+2025-03-27 16:46:18,475 - src.managers.game_manager - INFO - Game reset
+2025-03-27 16:46:19,631 - src.managers.game_manager - DEBUG - Spawned 4 asteroids for level 1
+2025-03-27 16:46:19,631 - src.managers.game_manager - INFO - Game reset
+2025-03-27 16:46:25,343 - src.managers.game_manager - DEBUG - Spawned 6 asteroids for level 2
+2025-03-27 16:46:25,343 - src.managers.game_manager - INFO - Starting level 2
+2025-03-27 16:46:27,231 - src.managers.game_manager - DEBUG - Spawned 8 asteroids for level 3
+2025-03-27 16:46:27,231 - src.managers.game_manager - INFO - Starting level 3
+2025-03-27 16:46:27,990 - src.managers.game_manager - DEBUG - Spawned 10 asteroids for level 4
+2025-03-27 16:46:27,990 - src.managers.game_manager - INFO - Starting level 4
+2025-03-27 16:46:28,973 - src.managers.game_manager - DEBUG - Spawned 12 asteroids for level 5
+2025-03-27 16:46:28,973 - src.managers.game_manager - INFO - Starting level 5
+2025-03-27 16:46:30,854 - src.managers.game_manager - DEBUG - Spawned 14 asteroids for level 6
+2025-03-27 16:46:30,854 - src.managers.game_manager - INFO - Starting level 6
+2025-03-27 16:46:33,464 - src.managers.game_manager - DEBUG - Spawned 16 asteroids for level 7
+2025-03-27 16:46:33,464 - src.managers.game_manager - INFO - Starting level 7

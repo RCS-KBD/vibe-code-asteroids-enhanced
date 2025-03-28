@@ -1,0 +1,15 @@
+2025-03-27 16:08:38,640 - root - INFO - Game logging initialized
+2025-03-27 16:08:38,853 - src.managers.sound_manager - DEBUG - Loaded sound: thrust from assets\sounds\thrusterFire_000.ogg
+2025-03-27 16:08:38,855 - src.managers.sound_manager - DEBUG - Loaded sound: shoot from assets\sounds\laserSmall_000.ogg
+2025-03-27 16:08:38,856 - src.managers.sound_manager - DEBUG - Loaded sound: enemy_shoot from assets\sounds\laserSmall_001.ogg
+2025-03-27 16:08:38,859 - src.managers.sound_manager - DEBUG - Loaded sound: explosion_small from assets\sounds\explosionCrunch_000.ogg
+2025-03-27 16:08:38,863 - src.managers.sound_manager - DEBUG - Loaded sound: explosion_medium from assets\sounds\explosionCrunch_001.ogg
+2025-03-27 16:08:38,866 - src.managers.sound_manager - DEBUG - Loaded sound: explosion_large from assets\sounds\explosionCrunch_002.ogg
+2025-03-27 16:08:38,868 - src.managers.sound_manager - DEBUG - Loaded sound: powerup from assets\sounds\laserRetro_003.ogg
+2025-03-27 16:08:38,870 - src.managers.sound_manager - DEBUG - Loaded sound: shield_hit from assets\sounds\forceField_000.ogg
+2025-03-27 16:08:38,873 - src.managers.sound_manager - DEBUG - Loaded sound: level_complete from assets\sounds\laserLarge_003.ogg
+2025-03-27 16:08:38,876 - src.managers.sound_manager - DEBUG - Loaded sound: game_over from assets\sounds\lowFrequency_explosion_000.ogg
+2025-03-27 16:08:38,877 - src.managers.game_manager - DEBUG - Spawned 4 asteroids for level 1
+2025-03-27 16:08:38,877 - src.managers.game_manager - INFO - Game manager initialized
+2025-03-27 16:08:38,877 - __main__ - INFO - Game initialized
+2025-03-27 16:08:38,882 - src.managers.game_manager - INFO - Level 1 complete

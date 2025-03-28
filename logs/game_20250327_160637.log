@@ -1,0 +1,27 @@
+2025-03-27 16:06:37,163 - root - INFO - Game logging initialized
+2025-03-27 16:06:37,481 - src.managers.sound_manager - DEBUG - Loaded sound: thrust from assets\sounds\thrusterFire_000.ogg
+2025-03-27 16:06:37,483 - src.managers.sound_manager - DEBUG - Loaded sound: shoot from assets\sounds\laserSmall_000.ogg
+2025-03-27 16:06:37,484 - src.managers.sound_manager - DEBUG - Loaded sound: enemy_shoot from assets\sounds\laserSmall_001.ogg
+2025-03-27 16:06:37,486 - src.managers.sound_manager - DEBUG - Loaded sound: explosion_small from assets\sounds\explosionCrunch_000.ogg
+2025-03-27 16:06:37,490 - src.managers.sound_manager - DEBUG - Loaded sound: explosion_medium from assets\sounds\explosionCrunch_001.ogg
+2025-03-27 16:06:37,494 - src.managers.sound_manager - DEBUG - Loaded sound: explosion_large from assets\sounds\explosionCrunch_002.ogg
+2025-03-27 16:06:37,496 - src.managers.sound_manager - DEBUG - Loaded sound: powerup from assets\sounds\laserRetro_003.ogg
+2025-03-27 16:06:37,498 - src.managers.sound_manager - DEBUG - Loaded sound: shield_hit from assets\sounds\forceField_000.ogg
+2025-03-27 16:06:37,501 - src.managers.sound_manager - DEBUG - Loaded sound: level_complete from assets\sounds\laserLarge_003.ogg
+2025-03-27 16:06:37,505 - src.managers.sound_manager - DEBUG - Loaded sound: game_over from assets\sounds\lowFrequency_explosion_000.ogg
+2025-03-27 16:06:37,505 - src.managers.game_manager - DEBUG - Spawned 4 asteroids for level 1
+2025-03-27 16:06:37,505 - src.managers.game_manager - INFO - Game manager initialized
+2025-03-27 16:06:37,505 - __main__ - INFO - Game initialized
+2025-03-27 16:06:37,510 - __main__ - ERROR - Game crashed: 'Player' object has no attribute 'invulnerable'
+Traceback (most recent call last):
+  File "C:\Users\strei\vibe-code-asteroids\main.py", line 178, in run
+    self.game_manager.update()
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\strei\vibe-code-asteroids\src\managers\game_manager.py", line 173, in update
+    self._check_collisions()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\strei\vibe-code-asteroids\src\managers\game_manager.py", line 116, in _check_collisions
+    if not self.player.invulnerable and not self.debug_invincible:
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Player' object has no attribute 'invulnerable'. Did you mean: 'is_invulnerable'?
+2025-03-27 16:06:37,523 - __main__ - INFO - Game shutting down

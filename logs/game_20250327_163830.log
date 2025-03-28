@@ -1,0 +1,10 @@
+2025-03-27 16:38:30,086 - root - INFO - Game logging initialized
+2025-03-27 16:38:30,308 - src.managers.sound_manager - DEBUG - Loaded sound: thrust
+2025-03-27 16:38:30,309 - src.managers.sound_manager - DEBUG - Loaded sound: shoot
+2025-03-27 16:38:30,311 - src.managers.sound_manager - DEBUG - Loaded sound: explosion
+2025-03-27 16:38:30,314 - src.managers.sound_manager - DEBUG - Loaded sound: powerup
+2025-03-27 16:38:30,316 - src.managers.sound_manager - DEBUG - Loaded sound: shield_hit
+2025-03-27 16:38:30,321 - src.managers.sound_manager - DEBUG - Loaded sound: player_explosion
+2025-03-27 16:38:30,332 - src.managers.sound_manager - DEBUG - Loaded sound: level_complete
+2025-03-27 16:38:30,332 - src.managers.game_manager - DEBUG - Spawned 4 asteroids for level 1
+2025-03-27 16:38:30,332 - src.managers.game_manager - INFO - Game manager initialized

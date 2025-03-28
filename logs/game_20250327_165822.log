@@ -1,0 +1,3 @@
+2025-03-27 16:58:22,865 - src.utils.logging_config - INFO - Logging initialized
+2025-03-27 16:58:23,188 - src.managers.game_manager - INFO - Game manager initialized
+2025-03-27 16:58:27,179 - src.managers.game_manager - INFO - Game reset
