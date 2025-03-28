@@ -137,11 +137,16 @@ class GameManager:
         # Update player
         self.player.update()
         
-        # Update enemy spawn timer
-        self.enemy_spawn_timer -= 1
-        if self.enemy_spawn_timer <= 0:
-            self.enemies.append(Enemy(WIDTH, HEIGHT))
-            self.enemy_spawn_timer = random.randint(300, 600)  # Reset timer
+        # Update enemy spawn timer - only in level 2 and above, and only if no enemies present
+        if self.level >= 2 and len(self.enemies) == 0:
+            self.enemy_spawn_timer -= 1
+            if self.enemy_spawn_timer <= 0:
+                self.enemies.append(Enemy(WIDTH, HEIGHT))
+                # Longer delay between enemy spawns
+                self.enemy_spawn_timer = random.randint(
+                    ENEMY_SPAWN_TIME_MIN * 2,  # Double the minimum time
+                    ENEMY_SPAWN_TIME_MAX * 2   # Double the maximum time
+                )
         
         # Update bullets
         for bullet in self.bullets[:]:
@@ -182,8 +187,8 @@ class GameManager:
         # Check collisions
         self._check_collisions()
         
-        # Check level completion
-        if not self.asteroids and not self.level_complete:
+        # Check level completion - require both asteroids and enemies to be cleared
+        if not self.asteroids and not self.enemies and not self.level_complete:
             self.level_complete = True
             self.sound_manager.play('level_complete')
     
@@ -206,6 +211,9 @@ class GameManager:
         self.powerups.clear()
         self.enemies.clear()
         self.explosions.clear()
+        
+        # Reset enemy spawn timer to a high value for level 1 (won't be used)
+        self.enemy_spawn_timer = ENEMY_SPAWN_TIME_MAX * 2
         
         # Spawn initial asteroids
         self._spawn_level_asteroids()
@@ -381,6 +389,56 @@ class GameManager:
         
         # Enemy-bullet collisions (player bullets hitting enemies)
         for enemy in self.enemies[:]:
+            # First check for player-enemy collisions
+            if self.player.rect.colliderect(enemy.rect):
+                if self.debug_invincible:
+                    # Destroy enemy with invincibility
+                    if enemy in self.enemies:
+                        self.enemies.remove(enemy)
+                        # Create explosion
+                        self.explosions.append(
+                            Explosion(enemy.x, enemy.y)
+                        )
+                        self.score += 500
+                        self.sound_manager.play('explosion')
+                        
+                        # Chance to spawn powerup from destroyed enemy
+                        if random.random() < POWERUP_SPAWN_CHANCE:
+                            self.powerups.append(
+                                Powerup(
+                                    enemy.x,
+                                    enemy.y,
+                                    random.choice(['shield', 'spread_shot'])
+                                )
+                            )
+                elif not self.player.is_invulnerable:
+                    if self.player.shields > 0:
+                        # Remove shield and create shield break effect
+                        self.player.remove_shield()
+                        self.sound_manager.play('shield_hit')
+                        # Create shield break explosion
+                        self.explosions.append(
+                            Explosion(
+                                self.player.position[0],
+                                self.player.position[1]
+                            )
+                        )
+                        # Make player briefly invulnerable
+                        self.player.make_invulnerable()
+                    else:
+                        # Game over on hit (single life system)
+                        self.game_over = True
+                        self.sound_manager.play('explosion')
+                        # Create explosion at player position
+                        self.explosions.append(
+                            Explosion(
+                                self.player.position[0],
+                                self.player.position[1]
+                            )
+                        )
+                continue  # Skip bullet collision checks for this enemy if it was destroyed by player collision
+
+            # Then check bullet collisions
             for bullet in self.bullets[:]:
                 # Skip enemy bullets for enemy collisions
                 if bullet.is_enemy:
@@ -411,9 +469,15 @@ class GameManager:
                     break
 
         # Player-bullet collisions (enemy bullets hitting player)
-        if not self.player.is_invulnerable and not self.debug_invincible:
-            for bullet in self.bullets[:]:
-                if bullet.is_enemy and bullet.rect.colliderect(self.player.rect):
+        for bullet in self.bullets[:]:
+            if bullet.is_enemy and bullet.rect.colliderect(self.player.rect):
+                # Create explosion effect regardless of invincibility
+                self.explosions.append(
+                    Explosion(bullet.position[0], bullet.position[1])
+                )
+                self.sound_manager.play('explosion')
+                
+                if not self.player.is_invulnerable and not self.debug_invincible:
                     if self.player.shields > 0:
                         # Remove shield and create shield break effect
                         self.player.remove_shield()
@@ -438,9 +502,11 @@ class GameManager:
                                 self.player.position[1]
                             )
                         )
-                    if bullet in self.bullets:
-                        self.bullets.remove(bullet)
-                    break
+                
+                # Remove the bullet regardless of player state
+                if bullet in self.bullets:
+                    self.bullets.remove(bullet)
+                break
     
     def start_next_level(self) -> None:
         """Start the next level."""
@@ -531,6 +597,13 @@ class GameManager:
         level_rect = level_text.get_rect()
         level_rect.topright = (WIDTH - 10, 10)
         self.screen.blit(level_text, level_rect)
+        
+        # Draw remaining enemies count in level 2+
+        if self.level >= 2:
+            enemy_text = font.render(f"Enemies: {len(self.enemies)}", True, WHITE)
+            enemy_rect = enemy_text.get_rect()
+            enemy_rect.topright = (WIDTH - 10, 50)
+            self.screen.blit(enemy_text, enemy_rect)
         
         # Draw game over or level complete message
         if self.game_over:
