@@ -151,4 +151,4 @@ class Enemy:
                  int(self.y + self.size + 10)), 2)
         
         # Debug: draw collision rect
-        # pygame.draw.rect(screen, (0, 255, 0), self.rect, 1) 
+        pygame.draw.rect(screen, (0, 255, 0), self.rect, 1)
