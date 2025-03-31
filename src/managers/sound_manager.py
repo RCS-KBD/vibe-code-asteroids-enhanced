@@ -38,7 +38,7 @@ class SoundManager:
             if self.sounds[sound_name] is None:
                 logger.warning(f"No sound file found for: {sound_name}")
     
-    def play_sound(self, sound_name: str):
+    def play(self, sound_name: str):
         """Play a sound effect."""
         if sound := self.sounds.get(sound_name):
             try:
@@ -48,7 +48,7 @@ class SoundManager:
         else:
             logger.warning(f"Sound not found: {sound_name}")
     
-    def stop_sound(self, sound_name: str):
+    def stop(self, sound_name: str):
         """Stop a sound effect."""
         if sound := self.sounds.get(sound_name):
             try:
