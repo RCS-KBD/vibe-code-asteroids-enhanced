@@ -14,29 +14,26 @@ class SoundManager:
     def _load_sounds(self):
         """Load all sound effects."""
         sound_files = {
-            'shoot': ['laserSmall_000.ogg', 'shoot.wav'],
-            'explosion': ['explosionCrunch_000.ogg', 'explosion.wav'],
-            'shield': ['forceField_000.ogg', 'shield.wav'],
-            'hit': ['impactMetal_000.ogg', 'hit.wav'],
-            'powerup': ['computerNoise_000.ogg', 'powerup.wav'],
-            'thrust': ['thrusterFire_000.ogg', 'thrust.wav']
+            'shoot': 'laserSmall_000.ogg',
+            'explosion': 'explosionCrunch_000.ogg',
+            'shield': 'forceField_000.ogg',
+            'hit': 'impactMetal_000.ogg',
+            'powerup': 'impactMetal_003.ogg',
+            'thrust': 'thrusterFire_000.ogg',
+            'shield_hit': 'forceField_000.ogg'
         }
         
-        for sound_name, filenames in sound_files.items():
+        for sound_name, filename in sound_files.items():
             self.sounds[sound_name] = None
-            for filename in filenames:
-                try:
-                    path = os.path.join('assets', 'sounds', filename)
-                    if os.path.exists(path):
-                        self.sounds[sound_name] = pygame.mixer.Sound(path)
-                        logger.info(f"Loaded sound: {sound_name} from {filename}")
-                        break
-                except Exception as e:
-                    logger.warning(f"Could not load sound file: {filename}")
-                    continue
-            
-            if self.sounds[sound_name] is None:
-                logger.warning(f"No sound file found for: {sound_name}")
+            try:
+                path = os.path.join('assets', 'sounds', filename)
+                if os.path.exists(path):
+                    self.sounds[sound_name] = pygame.mixer.Sound(path)
+                    logger.info(f"Loaded sound: {sound_name} from {filename}")
+                else:
+                    logger.warning(f"Sound file not found: {filename}")
+            except Exception as e:
+                logger.warning(f"Could not load sound file: {filename}")
     
     def play(self, sound_name: str):
         """Play a sound effect."""

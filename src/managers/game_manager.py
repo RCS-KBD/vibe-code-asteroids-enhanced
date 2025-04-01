@@ -588,48 +588,62 @@ class GameManager:
     
     def _draw_hud(self):
         """Draw the heads-up display."""
-        # Draw score and level
-        font = pygame.font.Font(None, 36)
-        score_text = font.render(f"Score: {self.score}", True, WHITE)
-        self.screen.blit(score_text, (10, 10))
-        
-        level_text = font.render(f"Level: {self.level}", True, WHITE)
-        level_rect = level_text.get_rect()
-        level_rect.topright = (WIDTH - 10, 10)
-        self.screen.blit(level_text, level_rect)
-        
-        # Draw remaining enemies count in level 2+
-        if self.level >= 2:
-            enemy_text = font.render(f"Enemies: {len(self.enemies)}", True, WHITE)
-            enemy_rect = enemy_text.get_rect()
-            enemy_rect.topright = (WIDTH - 10, 50)
-            self.screen.blit(enemy_text, enemy_rect)
-        
-        # Draw game over or level complete message
-        if self.game_over:
-            font = pygame.font.Font(None, 72)
-            text = font.render("GAME OVER", True, WHITE)
-            rect = text.get_rect()
-            rect.center = (WIDTH // 2, HEIGHT // 2)
-            self.screen.blit(text, rect)
+        try:
+            # Use system font as fallback if default font fails
+            try:
+                font = pygame.font.Font(None, 36)
+            except:
+                font = pygame.font.SysFont('arial', 36)
             
-            font = pygame.font.Font(None, 36)
-            text = font.render("Press R to retry or ESC to quit", True, WHITE)
-            rect = text.get_rect()
-            rect.center = (WIDTH // 2, HEIGHT // 2 + 50)
-            self.screen.blit(text, rect)
-        elif self.level_complete:
-            font = pygame.font.Font(None, 72)
-            text = font.render("LEVEL COMPLETE!", True, WHITE)
-            rect = text.get_rect()
-            rect.center = (WIDTH // 2, HEIGHT // 2)
-            self.screen.blit(text, rect)
+            # Draw score and level
+            score_text = font.render(f"Score: {self.score}", True, WHITE)
+            self.screen.blit(score_text, (10, 10))
             
-            font = pygame.font.Font(None, 36)
-            text = font.render("Press ENTER to continue", True, WHITE)
-            rect = text.get_rect()
-            rect.center = (WIDTH // 2, HEIGHT // 2 + 50)
-            self.screen.blit(text, rect)
+            level_text = font.render(f"Level: {self.level}", True, WHITE)
+            level_rect = level_text.get_rect()
+            level_rect.topright = (WIDTH - 10, 10)
+            self.screen.blit(level_text, level_rect)
+            
+            # Draw remaining enemies count in level 2+
+            if self.level >= 2:
+                enemy_text = font.render(f"Enemies: {len(self.enemies)}", True, WHITE)
+                enemy_rect = enemy_text.get_rect()
+                enemy_rect.topright = (WIDTH - 10, 50)
+                self.screen.blit(enemy_text, enemy_rect)
+            
+            # Draw game over or level complete message
+            if self.game_over:
+                try:
+                    font_large = pygame.font.Font(None, 72)
+                except:
+                    font_large = pygame.font.SysFont('arial', 72)
+                    
+                text = font_large.render("GAME OVER", True, WHITE)
+                rect = text.get_rect()
+                rect.center = (WIDTH // 2, HEIGHT // 2)
+                self.screen.blit(text, rect)
+                
+                text = font.render("Press R to retry or ESC to quit", True, WHITE)
+                rect = text.get_rect()
+                rect.center = (WIDTH // 2, HEIGHT // 2 + 50)
+                self.screen.blit(text, rect)
+            elif self.level_complete:
+                try:
+                    font_large = pygame.font.Font(None, 72)
+                except:
+                    font_large = pygame.font.SysFont('arial', 72)
+                    
+                text = font_large.render("LEVEL COMPLETE!", True, WHITE)
+                rect = text.get_rect()
+                rect.center = (WIDTH // 2, HEIGHT // 2)
+                self.screen.blit(text, rect)
+                
+                text = font.render("Press ENTER to continue", True, WHITE)
+                rect = text.get_rect()
+                rect.center = (WIDTH // 2, HEIGHT // 2 + 50)
+                self.screen.blit(text, rect)
+        except Exception as e:
+            print(f"Error drawing HUD: {e}")
 
     def _draw_debug_menu(self):
         """Draw the debug information overlay."""
@@ -682,5 +696,4 @@ class GameManager:
         self.asteroids.clear()
         
         # Set level complete
-        self.level_complete = True
-        self.sound_manager.play('level_complete') 
+        self.level_complete = True 
